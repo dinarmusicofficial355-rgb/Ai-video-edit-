@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Editor</title>
+    <!-- Google Identity Services Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background-color: #1e293b;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .login-card h2 {
+            color: #38bdf8;
+            margin-bottom: 10px;
+        }
+
+        .login-card p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        #googleBtnContainer {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .guest-btn {
+            background-color: #334155;
+            color: #38bdf8;
+            border: 1px solid #38bdf8;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .guest-btn:hover {
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background-color: #1e293b;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            font-size: 0.85rem;
+            color: #38bdf8;
+        }
+
+        .logout-btn {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-wrap: wrap;
+            flex: 1;
+            padding: 15px;
+            gap: 15px;
+        }
+
+        .left-panel {
+            flex: 2;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .video-preview-box {
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+        }
+
+        .video-preview-box video {
+            width: 100%;
+            max-height: 400px;
+            transition: filter 0.3s ease;
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 10px;
+            background-color: #1e293b;
+            padding: 10px;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background-color: #334155;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .control-btn:hover {
+            background-color: #475569;
+        }
+
+        .right-panel {
+            flex: 1;
+            min-width: 280px;
+            background-color: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background-color: #334155;
+            color: #94a3b8;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background-color: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .tool-section {
+            background-color: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .tool-section h3 {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+        }
+
+        .tool-section p {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .tool-section select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background-color: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 5px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .action-btn:hover {
+            opacity: 0.9;
+        }
+
+        .ai-btn {
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            font-weight: bold;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .toast {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #22c55e;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <h2>AI Video Editor</h2>
+            <p>ভিডিও এডিটর ব্যবহার করতে আপনার গুগল অ্যাকাউন্ট দিয়ে লগইন করুন</p>
+            <div id="googleBtnContainer"></div>
+            <button class="guest-btn" onclick="continueAsGuest()">ডেমো মোডে প্রবেশ করুন (Guest)</button>
+        </div>
+    </div>
+
+    <div id="appContainer" class="app-container hidden">
+        <header class="app-header">
+            <div class="header-left">
+                <h1>AI Video Editor</h1>
+            </div>
+            <div class="header-right">
+                <span id="userInfo" class="user-info"></span>
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+                <button class="export-btn" onclick="triggerExport()">Export Video 🚀</button>
+            </div>
+        </header>
+
+        <main class="editor-container">
+            <section class="left-panel">
+                <div class="video-preview-box">
+                    <video id="mainVideo" controls poster="https://placehold.co/640x360/1e293b/38bdf8?text=Video+Preview">
+                        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="timeline-controls">
+                    <button class="control-btn" onclick="playVideo()">▶️ Play</button>
+                    <button class="control-btn" onclick="pauseVideo()">⏸️ Pause</button>
+                    <button class="control-btn" onclick="stopVideo()">⏹️ Stop</button>
+                </div>
+            </section>
+
+            <section class="right-panel">
+                <div class="tabs">
+                    <button class="tab-btn active" id="tab-ai" onclick="switchTab('ai-tools')">AI Tools</button>
+                    <button class="tab-btn" id="tab-edit" onclick="switchTab('edit')">Manual Edit</button>
+                </div>
+
+                <div id="ai-tools" class="tab-content">
+                    <div class="tool-section ai-card">
+                        <h3>⚡ One-Tap AI Auto Edit</h3>
+                        <p>এআই দিয়ে ভিডিও স্বয়ংক্রিয়ভাবে কাট ও এফেক্ট যোগ করুন।</p>
+                        <button class="action-btn ai-btn" onclick="runAutoAIEdit()">✨ Auto Edit Video</button>
+                    </div>
+
+                    <div class="tool-section">
+                        <h3>🗣️ AI Voiceover & Dubbing</h3>
+                        <label for="voiceSelect">Voice Gender</label>
+                        <select id="voiceSelect">
+                            <option>Bangla - Female (A)</option>
+                            <option>Bangla - Male (B)</option>
+                        </select>
+                        <button class="action-btn" onclick="applyAIVoice()">Generate Voice</button>
+                    </div>
+
+                    <div class="tool-section">
+                        <h3>🎭 AI Background Removal</h3>
+                        <button class="action-btn secondary" onclick="applyAIBg()">Remove Background</button>
+                    </div>
+                </div>
+
+                <div id="edit" class="tab-content" style="display:none;">
+                    <div class="tool-section">
+                        <h3>🎨 Video Filters</h3>
+                        <div class="filter-grid">
+                            <button class="action-btn" onclick="applyFilter('none')">Reset</button>
+                            <button class="action-btn" onclick="applyFilter('sepia')">Sepia</button>
+                            <button class="action-btn" onclick="applyFilter('grayscale')">Grayscale</button>
+                            <button class="action-btn" onclick="applyFilter('invert')">Invert</button>
+                            <button class="action-btn" onclick="applyFilter('blur')">Blur</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Toast Element -->
+    <div id="toast-notification" class="toast"></div>
+
+    <script>
+        const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+        const video = document.getElementById('mainVideo');
+
+        window.onload = function () {
+            if (window.google && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleCredentialResponse
+                });
+
+                google.accounts.id.renderButton(
+                    document.getElementById("googleBtnContainer"),
+                    { theme: "outline", size: "large", text: "signin_with" }
+                );
+            }
+        };
+
+        function handleCredentialResponse(response) {
+            const responsePayload = decodeJwtResponse(response.credential);
+            document.getElementById('userInfo').innerText = responsePayload.name;
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            showToast(`স্বাগতম ${responsePayload.given_name}!`);
+        }
+
+        function decodeJwtResponse(token) {
+            let base64Url = token.split('.')[1];
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
+        }
+
+        function continueAsGuest() {
+            document.getElementById('userInfo').innerText = "Guest User";
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            showToast('স্বাগতম ডেমো ইউজার!');
+        }
+
+        function handleLogout() {
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            showToast('লগআউট করা হয়েছে');
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('ai-tools').style.display = tabName === 'ai-tools' ? 'block' : 'none';
+            document.getElementById('edit').style.display = tabName === 'edit' ? 'block' : 'none';
+            
+            document.getElementById('tab-ai').classList.toggle('active', tabName === 'ai-tools');
+            document.getElementById('tab-edit').classList.toggle('active', tabName === 'edit');
+        }
+
+        function playVideo() {
+            video.play();
+            showToast('ভিডিও প্লে হচ্ছে');
+        }
+
+        function pauseVideo() {
+            video.pause();
+            showToast('ভিডিও পজ করা হয়েছে');
+        }
+
+        function stopVideo() {
+            video.pause();
+            video.currentTime = 0;
+            showToast('ভিডিও রিস্টার্ট করা হয়েছে');
+        }
+
+        function runAutoAIEdit() {
+            showToast('🤖 AI স্বয়ংক্রিয়ভাবে ভিডিও এডিট করছে...');
+            setTimeout(() => {
+                applyFilter('sepia');
+                showToast('✨ AI Auto Edit সম্পন্ন হয়েছে!');
+            }, 1500);
+        }
+
+        function applyAIVoice() {
+            const voice = document.getElementById('voiceSelect').value;
+            showToast(`AI ভয়েস ওভার যোগ করা হয়েছে: ${voice}`);
+        }
+
+        function applyAIBg() {
+            showToast('AI ব্যাকগ্রাউন্ড অপসারণ সম্পন্ন!');
+        }
+
+        function applyFilter(filterType) {
+            if (filterType === 'sepia') video.style.filter = 'sepia(100%)';
+            else if (filterType === 'grayscale') video.style.filter = 'grayscale(100%)';
+            else if (filterType === 'invert') video.style.filter = 'invert(100%)';
+            else if (filterType === 'blur') video.style.filter = 'blur(4px)';
+            else video.style.filter = 'none';
+
+            showToast(`ফিল্টার প্রয়োগ করা হয়েছে: ${filterType}`);
+        }
+
+        function triggerExport() {
+            showToast('ভিডিও প্রসেসিং হচ্ছে, এক্সপোর্ট শুরু হচ্ছে...');
+            setTimeout(() => {
+                showToast('আপনার ভিডিও সফলভাবে এক্সপোর্ট হয়েছে!');
+            }, 2000);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            toast.innerText = message;
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
